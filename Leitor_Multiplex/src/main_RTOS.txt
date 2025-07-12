@@ -1,0 +1,193 @@
+#include <Arduino.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/semphr.h>
+#include <freertos/timers.h>
+
+// Pinos
+#define A_PIN 14
+#define B_PIN 27
+#define SENSOR_PIN_1 15
+#define SENSOR_PIN_2 2
+#define MV_PIN 25
+
+// Tempos
+#define SAMPLING_INTERVAL_MS 20
+#define STEP_DELAY_MS 5000
+
+// Globais
+volatile float VCC = 0.0;
+volatile float sensorVoltage1 = 0.0;
+volatile float sensorVoltage2 = 0.0;
+int seletor_1ordem = 1;
+int seletor_2ordem = 1;
+int modoExibicao = 1; // 1 = 1ª ordem, 2 = 2ª ordem, 3 = ambas
+
+// Handles
+TimerHandle_t timerLeitura, timerStep;
+SemaphoreHandle_t semaforoStart;
+
+// ======================= Funções =======================
+
+void setMUX()
+{
+  int a = 0, b = 0;
+  switch (seletor_1ordem)
+  {
+  case 1:
+    a = 0;
+    b = 0;
+    break;
+  case 2:
+    a = 1;
+    b = 0;
+    break;
+  case 3:
+    a = 0;
+    b = 1;
+    break;
+  case 4:
+    a = 1;
+    b = 1;
+    break;
+  default:
+    a = 0;
+    b = 0;
+    break;
+  }
+  digitalWrite(A_PIN, a);
+  digitalWrite(B_PIN, b);
+}
+
+void leituraCallback(TimerHandle_t xTimer)
+{
+  int raw1 = analogRead(SENSOR_PIN_1);
+  int raw2 = analogRead(SENSOR_PIN_2);
+  sensorVoltage1 = raw1 * (VCC / 4096.0);
+  sensorVoltage2 = raw2 * (VCC / 4096.0);
+
+  Serial.print(xTaskGetTickCount() / 1000.0, 1);
+  Serial.print(",");
+  Serial.print(VCC);
+  Serial.print(",");
+
+  if (modoExibicao == 1)
+    Serial.println(sensorVoltage1, 2);
+  else if (modoExibicao == 2)
+    Serial.println(sensorVoltage2, 2);
+  else
+  {
+    Serial.print(sensorVoltage1, 2);
+    Serial.print(",");
+    Serial.println(sensorVoltage2, 2);
+  }
+}
+
+void stepCallback(TimerHandle_t xTimer)
+{
+  dacWrite(MV_PIN, 255);
+  VCC = 3.3;
+  Serial.println("Degrau aplicado");
+}
+
+// ======================= TASKS =======================
+
+void taskSerialHandler(void *param)
+{
+  while (true)
+  {
+    if (Serial.available())
+    {
+      String comando = Serial.readStringUntil('\n');
+      comando.trim();
+
+      if (comando.startsWith("A") && comando.indexOf("B") > 1)
+      {
+        int idxB = comando.indexOf("B");
+        int novo1 = comando.substring(1, idxB).toInt();
+        int novo2 = comando.substring(idxB + 1).toInt();
+
+        if (novo1 >= 1 && novo1 <= 4 && novo2 >= 1 && novo2 <= 2)
+        {
+          seletor_1ordem = novo1;
+          seletor_2ordem = novo2;
+          setMUX();
+          Serial.printf("MUX configurado: A%d B%d\n", novo1, novo2);
+
+          // Libera a task de aquisição (se ainda não foi)
+          if (xSemaphoreGive(semaforoStart) == pdPASS)
+          {
+            Serial.println("Aquisição será iniciada...");
+          }
+        }
+      }
+      else if (comando.equalsIgnoreCase("SHOW1"))
+      {
+        modoExibicao = 1;
+        Serial.println("Exibindo apenas planta 1ª ordem.");
+      }
+      else if (comando.equalsIgnoreCase("SHOW2"))
+      {
+        modoExibicao = 2;
+        Serial.println("Exibindo apenas planta 2ª ordem.");
+      }
+      else if (comando.equalsIgnoreCase("SHOWBOTH"))
+      {
+        modoExibicao = 3;
+        Serial.println("Exibindo ambas as plantas.");
+      }
+      else
+      {
+        Serial.println("Comando inválido.");
+      }
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(100));
+  }
+}
+
+void taskAquisicao(void *param)
+{
+  while (true)
+  {
+    // Espera o semáforo ser liberado
+    xSemaphoreTake(semaforoStart, portMAX_DELAY);
+
+    // Inicia timers após autorização via serial
+    VCC = 0.0;
+    xTimerStart(timerLeitura, 0);
+    xTimerStart(timerStep, 0);
+    Serial.println("Aquisição iniciada.");
+
+    // Task continua ativa, ou reinicia com nova liberação
+  }
+}
+
+// ======================= SETUP =======================
+
+void setup()
+{
+  Serial.begin(115200);
+  pinMode(A_PIN, OUTPUT);
+  pinMode(B_PIN, OUTPUT);
+  pinMode(MV_PIN, OUTPUT);
+  pinMode(SENSOR_PIN_1, INPUT);
+  pinMode(SENSOR_PIN_2, INPUT);
+
+  // Cria semáforo binário
+  semaforoStart = xSemaphoreCreateBinary();
+
+  // Cria timers
+  timerLeitura = xTimerCreate("Leitura", pdMS_TO_TICKS(SAMPLING_INTERVAL_MS), pdTRUE, NULL, leituraCallback);
+  timerStep = xTimerCreate("Step", pdMS_TO_TICKS(STEP_DELAY_MS), pdFALSE, NULL, stepCallback);
+
+  // Cria tasks
+  xTaskCreate(taskSerialHandler, "Serial", 4096, NULL, 1, NULL);
+  xTaskCreate(taskAquisicao, "Aquisicao", 4096, NULL, 1, NULL);
+
+  Serial.println("Sistema iniciado. Envie A[n]B[m] para selecionar canais.");
+}
+void loop()
+{
+  // Não usado, pois o sistema é baseado em tasks
+}

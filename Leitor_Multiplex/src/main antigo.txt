@@ -1,0 +1,144 @@
+/* rc id code - timer - By Josenalde Oliveira July 2024 */
+#include <Arduino.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+
+// Settings
+static const TickType_t samplingInterval = 20 / portTICK_PERIOD_MS; // 100ms = 0.1s
+static const TickType_t timeToStartInterval = 5000 / portTICK_PERIOD_MS;
+
+static const uint8_t A_PIN = 14; // Controle das saídas [x1 x2 x3 x4] do MUX
+static const uint8_t B_PIN = 27; // Controle das saídas [x1 x2 x3 x4] do MUX
+// static const uint8_t PV_PIN = 15;
+static const uint8_t SENSOR1_PIN = 35;
+static const uint8_t SENSOR2_PIN = 34;
+static const uint8_t MV_PIN_1 = 25;//sinal analógico para planta 1
+static const uint8_t MV_PIN_2 = 26;//sinal analógico para planta 2
+volatile float VCC = 0.0;
+volatile uint16_t sensorReadingInt;
+volatile float sensorReadingVoltage;
+int seletor = 1;
+// Globals
+static TimerHandle_t muxConfigTimer = NULL; // handle global para o timer
+static TimerHandle_t getSensorReadingTimer = NULL;
+static TimerHandle_t stepInputStartTimer = NULL;
+static TaskHandle_t taskZeroOutputHandler = NULL;
+
+
+
+//*****************************************************************************
+// Callback
+// get a new sample
+void getSensorReadingCallback(TimerHandle_t xTimer)
+{
+  Serial.print(xTaskGetTickCount() / 1000., 1);
+  sensorReadingInt = analogRead(SENSOR_PIN);
+  sensorReadingVoltage = (sensorReadingInt) * (VCC / 4096.);
+  Serial.print(",");
+  Serial.print(VCC);
+  Serial.print(",");
+  Serial.println(sensorReadingVoltage, 1);
+}
+
+// send step after <timeToStartInterval> seconds
+void setStepInputReadingCallback(TimerHandle_t xTimer)
+{
+  dacWrite(MV_PIN_1, 255);
+   dacWrite(MV_PIN_2, 255);
+  VCC = 3.3;
+}
+// função de callback para o MUX
+void setMUXCallback(TimerHandle_t xTimer)
+{
+  switch (seletor)
+  {
+  case 1:
+    digitalWrite(A_PIN, 0);
+    digitalWrite(B_PIN, 0);
+    break;
+  case 2:
+    digitalWrite(A_PIN, 1);
+    digitalWrite(B_PIN, 0);
+    break;
+  case 3:
+    digitalWrite(A_PIN, 0);
+    digitalWrite(B_PIN, 1);
+    break;
+  case 4:
+    digitalWrite(A_PIN, 1);
+    digitalWrite(B_PIN, 1);
+    break;
+  default:
+    break;
+  }
+  Serial.print("MUX configurado para canal: ");
+  Serial.println(seletor);
+}
+
+void setup()
+{
+  // Configure Serial
+  Serial.begin(115200);
+  // Configure I/O direction
+  pinMode(MV_PIN_1, OUTPUT);
+  pinMode(SENSOR_PIN, INPUT);
+  pinMode(A_PIN, OUTPUT);
+  pinMode(B_PIN, OUTPUT);
+
+  // Create a auto-reload timer for sensor readings
+  getSensorReadingTimer = xTimerCreate(
+      "getSensorReadingTimer",   // Name of timer
+      samplingInterval,          // Period of timer (in ticks)
+      pdTRUE,                    // Auto-reload TRUE, one_shot FALSE
+      (void *)0,                 // Timer ID
+      getSensorReadingCallback); // Callback function
+  // Create a one shot timer for step output
+  stepInputStartTimer = xTimerCreate(
+      "stepInputStartTimer ",       // Name of timer
+      timeToStartInterval,          // Period of timer (in ticks)
+      pdFALSE,                      // Auto-reload TRUE, one_shot FALSE
+      (void *)1,                    // Timer ID
+      setStepInputReadingCallback); // Callback function
+                                    // Criar o timer para configurar o MUX (One-Shot, só executa uma vez no início)
+  muxConfigTimer = xTimerCreate(
+      "muxConfigTimer",   // Nome do timer
+      pdMS_TO_TICKS(100), // Pequeno delay de 100ms para garantir que o setup dos pinos terminou
+      pdFALSE,            // Não é auto-reload (executa só uma vez)
+      (void *)2,          // ID opcional
+      setMUXCallback);    // Função de callback
+
+  // // Create a one shot timer for step output
+  // stepInputStartTimer = xTimerCreate(
+  //     "taskZeroOutputHandler ",     // Name of timer
+  //     timeToStartInterval,          // Period of timer (in ticks)
+  //     pdFALSE,                      // Auto-reload TRUE, one_shot FALSE
+  //     (void *)0,                    // Timer ID
+  //     setStepInputReadingCallback); // Callback function
+
+  xTimerStart(getSensorReadingTimer, 0);
+  xTimerStart(stepInputStartTimer, 0);
+  // Inicia o timer
+  xTimerStart(muxConfigTimer, 0);
+  // xTimerStart(taskZeroOutputHandler, 0);
+}
+
+void loop()
+{
+  vTaskSuspend(NULL); // Execution should never get here
+  //  leitorSerial();
+  // setMUX();
+}
+
+// void leitorSerial()
+//{
+//   // Serial.print("Qual saida: ");
+//   if (Serial.available())
+//   {                             // Verifica se há dados na serial
+//     char c = Serial.read();     // Lê um caractere
+//     Serial.print("Recebido: "); // Imprime na serial
+//     Serial.println(c);          // Imprime o caractere
+//     c = c - '0';
+//     MUX(c);
+//   }
+// }
+
