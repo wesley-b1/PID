@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Controle PID via WebSocket</title>
+    <link rel="stylesheet" href="/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <h1>Controle PID - ESP32</h1>
+
+    <div class="container">
+        <!-- Painel de controle -->
+        <div class="control-panel">
+            <div>
+                <label for="sp">Setpoint (SP):</label>
+                <input type="number" id="sp" step="1" value="3072">
+            </div>
+            <div>
+                <label for="kp">Kp:</label>
+                <input type="number" id="kp" step="0.01" value="2.0">
+            </div>
+            <div>
+                <label for="ki">Ki:</label>
+                <input type="number" id="ki" step="0.01" value="0.5">
+            </div>
+            <div>
+                <label for="kd">Kd:</label>
+                <input type="number" id="kd" step="0.01" value="0.0">
+            </div>
+            <div>
+                <label for="planta">Planta (1–6):</label>
+                <input type="number" id="planta" step="1" min="1" max="6" value="4" onchange="autoFillGains()">
+            </div>
+            <div class="buttons">
+                <button onclick="sendParams()">Enviar Parâmetros</button>
+                <button onclick="sendStart()">Iniciar</button>
+                <button onclick="sendStop()">Parar</button>
+            </div>
+            <p id="status">Conectando...</p>
+        </div>
+
+        <!-- Tabela lateral -->
+        <div class="gain-table">
+            <h3>Ganhos PID por Planta</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Planta</th>
+                        <th>Kp</th>
+                        <th>Ki</th>
+                        <th>Kd</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>1</td>
+                        <td>1.922</td>
+                        <td>0.602</td>
+                        <td>0.000</td>
+                    </tr>
+                    <tr>
+                        <td>2</td>
+                        <td>2.033</td>
+                        <td>0.525</td>
+                        <td>0.000</td>
+                    </tr>
+                    <tr>
+                        <td>3</td>
+                        <td>2.054</td>
+                        <td>0.299</td>
+                        <td>0.000</td>
+                    </tr>
+                    <tr>
+                        <td>4</td>
+                        <td>1.961</td>
+                        <td>0.241</td>
+                        <td>0.000</td>
+                    </tr>
+                    <tr>
+                        <td>5</td>
+                        <td>–</td>
+                        <td>–</td>
+                        <td>–</td>
+                    </tr>
+                    <tr>
+                        <td>6</td>
+                        <td>–</td>
+                        <td>–</td>
+                        <td>–</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Gráfico -->
+    <div class="chart-container">
+        <canvas id="pidChart"></canvas>
+    </div>
+
+    <script src="/script.js"></script>
+</body>
+
+</html>
