@@ -234,7 +234,8 @@ $$
 
 Isso garante que o **termo integral** (`I(k)`) não ultrapasse os valores físicos definidos por `u_min` e `u_max`.
 
-#### 📘 Resumo:
+### 📘 Resumo:
+
 A função `clamp()` atua como um limitador inteligente dentro do controle PID, garantindo que os valores de saída fiquem sempre dentro de um intervalo seguro e previsível.
 ---
 
