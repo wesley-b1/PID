@@ -74,7 +74,11 @@ $$
 \[
 u(k) = K_p \cdot e(k) + I(k) + D(k)
 \]
+$$
+
 e então:
+
+$$
 \[
 u(k) = \text{clamp}(u(k), uMin, uMax)
 \]
