@@ -199,12 +199,44 @@ Com
 $$
 I(k) = \text{clamp}\big(I(k-1) + K_i \cdot e(k),\, u_{\min},\, u_{\max}\big)
 $$
+## ⚙️ Função de Saturação — `clamp()`
 
-- A função clamp(x, min, max) (também chamada de saturação ou limitador) é uma operação matemática usada para restringir um valor dentro de um intervalo definido. Em controle digital, isso serve para evitar windup (quando o termo integral cresce demais e faz o sistema saturar).
-- significa:
+A função **`clamp(x, x_min, x_max)`** é utilizada para limitar um valor dentro de um intervalo definido.  
+Ela impede que a saída ultrapasse valores físicos ou desejados, sendo essencial em sistemas de controle digital para evitar **windup** (acúmulo excessivo do termo integral).
 
-“O valor atual do termo integral é a soma do anterior com \big(K_i \cdot e(k))​, mas limitado entre os valores mínimo e máximo permitidos.”
---- 
+---
+
+### 🧮 Definição Matemática de Clamp
+
+$$
+\text{clamp}(x, x_{\min}, x_{\max}) =
+\begin{cases}
+x_{\min}, & \text{se } x < x_{\min} \\
+x, & \text{se } x_{\min} \le x \le x_{\max} \\
+x_{\max}, & \text{se } x > x_{\max}
+\end{cases}
+$$
+
+Essa equação significa que:
+- Se o valor calculado for **menor** que o limite inferior, ele é **ajustado para o mínimo**.  
+- Se estiver **dentro da faixa**, o valor permanece **inalterado**.  
+- Se for **maior** que o limite superior, ele é **ajustado para o máximo**.
+
+---
+
+### 🧩 Aplicação no PID
+
+A função `clamp()` é usada no cálculo do termo integral para limitar o crescimento acumulado:
+
+$$
+I(k) = \text{clamp}\big(I(k-1) + K_i \cdot e(k),\, u_{\min},\, u_{\max}\big)
+$$
+
+Isso garante que o **termo integral** (`I(k)`) não ultrapasse os valores físicos definidos por `u_min` e `u_max`.
+
+#### 📘 Resumo:
+A função `clamp()` atua como um limitador inteligente dentro do controle PID, garantindo que os valores de saída fiquem sempre dentro de um intervalo seguro e previsível.
+---
 
 ## 🧭 Resumo Final
 
