@@ -200,6 +200,10 @@ $$
 I(k) = \text{clamp}\big(I(k-1) + K_i \cdot e(k),\, u_{\min},\, u_{\max}\big)
 $$
 
+- A função clamp(x, min, max) (também chamada de saturação ou limitador) é uma operação matemática usada para restringir um valor dentro de um intervalo definido. Em controle digital, isso serve para evitar windup (quando o termo integral cresce demais e faz o sistema saturar).
+- significa:
+
+“O valor atual do termo integral é a soma do anterior com \big(K_i \cdot e(k))​, mas limitado entre os valores mínimo e máximo permitidos.”
 --- 
 
 ## 🧭 Resumo Final
