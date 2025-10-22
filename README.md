@@ -42,23 +42,35 @@ Este sistema utiliza **FreeRTOS** para executar tarefas e timers em paralelo, co
 A função `computeU()` executa o **PID incremental**, conforme as seguintes relações:
 
 ### 1️⃣ Cálculo do erro
+$$
 \[
 e(k) = SP - Y(k)
 \]
+$$
 
 ### 2️⃣ Termo integral (acumulado e limitado)
+
+$$
 \[
 I(k) = I(k-1) + K_i \cdot e(k)
 \]
+$$
+
 Com saturação entre `uMin` e `uMax`.
 
 ### 3️⃣ Termo derivativo (derivada da PV, não do erro)
+
+$$
 \[
 D(k) = -K_d \cdot \frac{dY}{dt} = -K_d \cdot (Y(k) - Y(k-1))
 \]
+$$
+
 > A derivada é feita sobre `y` (PV), não sobre `e`, para reduzir ruído.
 
 ### 4️⃣ Saída total
+
+$$
 \[
 u(k) = K_p \cdot e(k) + I(k) + D(k)
 \]
@@ -66,7 +78,7 @@ e então:
 \[
 u(k) = \text{clamp}(u(k), uMin, uMax)
 \]
-
+$$
 ---
 
 ## 🧮 Funções do PID
