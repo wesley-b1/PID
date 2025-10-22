@@ -79,6 +79,7 @@ e então:
 u(k) = \text{clamp}(u(k), uMin, uMax)
 \]
 $$
+
 ---
 
 ## 🧮 Funções do PID
