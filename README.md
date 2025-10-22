@@ -88,12 +88,14 @@ Executada periodicamente pelo **timer `getSensorReadingTimer`**.
 ### `setTunings(double kP, double kI, double kD)`
 Ajusta os ganhos do PID levando em conta o **tempo de amostragem** (`sampleTime`).
 
+$$
 \[
 K_i' = K_i \cdot T_s
 \]
 \[
 K_d' = \frac{K_d}{T_s}
 \]
+$$
 
 Isso garante consistência entre controladores com diferentes taxas de atualização.
 
@@ -173,10 +175,10 @@ u(k) = K_p \cdot e(k) + I(k-1) + K_i \cdot e(k) - K_d \cdot (Y(k) - Y(k-1))
 $$
 
 Com
+
 $$
 I(k) = \text{clamp}\big(I(k-1) + K_i \cdot e(k),\, u_{\min},\, u_{\max}\big)
 $$
-
 
 --- 
 
