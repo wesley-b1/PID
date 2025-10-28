@@ -10,8 +10,8 @@
 #include <Arduino_JSON.h> // Para envio ao websocket (atualizar gráfico)
 
 //  Configurando o Wi-Fi e WebSocket
-const char *ssid = "brisa-1401761";
-const char *password = "8hwzipmn";
+const char *ssid = "seu_WIFI";
+const char *password = "sua_SENHA";
 WebSocketsServer websocketserver = WebSocketsServer(8080);
 WebServer webserver(80);
 
